@@ -13,6 +13,10 @@ double max(double a, double b)
 {
     return (a > b) ? a : b;
 }
+double min(double a, double b)
+{
+    return (a > b) ? b : a;
+}
 void fillArrays(double * c, double ** a, double * b)
 {
     c[0] = 0;
@@ -118,7 +122,7 @@ void solveFixed(double n, double l, double r, double y1, double y2, double * c, 
     }
     fclose(out);
 }
-void solveChange(double l, double r, double y1, double y2, double eps, double * c, double ** a, double * b)
+void solveChange(double l, double r, double y1, double y2, double eps, double eps1, double * c, double ** a, double * b)
 {
     double h;
     double n;
@@ -130,19 +134,27 @@ void solveChange(double l, double r, double y1, double y2, double eps, double * 
     fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
     while(fabs(l - r) > EPS)
     {
-        h = (r - l);
+        h = 1;
         hell:
+        //printf("%lf \n", h);
         tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
         tmp2 = rungeKutta(h/2.0, tmp.y1, tmp.y2, l, c, a, b);
-        tmp2 = rungeKutta(h/2.0, tmp2.y1, tmp2.y2, l + h/2.0, c, a, b);
-        if(norm(tmp1, tmp2)/(pow(2, 6) - 1) > eps)
+        tmp3 = rungeKutta(h/2.0, tmp2.y1, tmp2.y2, l + h/2.0, c, a, b);
+        //printf("%lf %lf %lf %lf \n", tmp1.y1, tmp1.y2, tmp2.y1, tmp2.y2);
+        //printf("%lf \n", norm(tmp1, tmp2));
+        if(norm(tmp1, tmp3)/(pow(2, 6) - 1) > eps && !(2*h > (r - l)))
         {
             h /= 2.0;
             goto hell;
         }
+        else if(norm(tmp1, tmp3)/(pow(2, 6) - 1) < eps1 && !(2*h > (r - l)))
+        {
+            h *= 2;
+            goto hell;
+        }
         else 
         {  
-            tmp = tmp2;
+            tmp = tmp3;
             l += h;
             n = max(fabs(tmp.y1 - checkSol(l)), n);
             fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
@@ -182,7 +194,7 @@ int main()
         a[i] = (double *)malloc(sizeof(double)*(i + 1));
     fillArrays(c, a, b);
     //solveFixed(n, l, r, y1_0, y2_0, c, a, b);
-    solveChange(l, r, y1_0, y2_0, 0.0000001, c, a, b);
+    solveChange(l, r, y1_0, y2_0, 0.000001, 0.0000001, c, a, b);
     free(c);
     free(b);
     for(i = 0; i < 6; i++)
