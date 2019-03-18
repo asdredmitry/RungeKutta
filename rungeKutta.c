@@ -142,12 +142,12 @@ void solveChange(double l, double r, double y1, double y2, double eps, double ep
         tmp3 = rungeKutta(h/2.0, tmp2.y1, tmp2.y2, l + h/2.0, c, a, b);
         //printf("%lf %lf %lf %lf \n", tmp1.y1, tmp1.y2, tmp2.y1, tmp2.y2);
         //printf("%lf \n", norm(tmp1, tmp2));
-        if(norm(tmp1, tmp3)/(pow(2, 6) - 1) > eps && !(2*h > (r - l)))
+        if(norm(tmp1, tmp3)/(pow(2, 6) - 1) > eps)
         {
             h /= 2.0;
             goto hell;
         }
-        else if(norm(tmp1, tmp3)/(pow(2, 6) - 1) < eps1 && !(2*h > (r - l)))
+        else if(norm(tmp1, tmp3)/(pow(2, 6) - 1) < eps1)
         {
             h *= 2;
             goto hell;
