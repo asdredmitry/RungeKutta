@@ -3,7 +3,9 @@
 #include <math.h>
 #include <string.h>
 const double omega = 2;
+double alpha = -0.2;
 const double EPS = 0.00001;
+const double minh = 0.00001;
 typedef struct
 {
     double y1;
@@ -68,7 +70,10 @@ double f1(double t, double y1, double y2)
 }
 double f2(double t, double y1, double y2) 
 {
-    return -sin(t);
+    //return -y1;
+    //return -y1*y1*y1 + alpha*cos(t);
+    return -(1 + alpha*y1*y1)*y1 + cos(t);
+    //return -sin(t);
 }
 double checkSol(double t)
 {
@@ -122,46 +127,46 @@ void solveFixed(double n, double l, double r, double y1, double y2, double * c, 
     }
     fclose(out);
 }
-void solveChange(double l, double r, double y1, double y2, double eps, double eps1, double * c, double ** a, double * b)
+void solveChange(double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
 {
-    double h;
-    double n;
-    pair tmp, tmp1, tmp2, tmp3;
-    FILE * out = fopen("data.dat", "w");
-    tmp.y1 = y1;
-    tmp.y2 = y2;
-    n = 0;
-    fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
-    while(fabs(l - r) > EPS)
-    {
-        h = 1;
-        hell:
-        //printf("%lf \n", h);
-        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
-        tmp2 = rungeKutta(h/2.0, tmp.y1, tmp.y2, l, c, a, b);
-        tmp3 = rungeKutta(h/2.0, tmp2.y1, tmp2.y2, l + h/2.0, c, a, b);
-        //printf("%lf %lf %lf %lf \n", tmp1.y1, tmp1.y2, tmp2.y1, tmp2.y2);
-        //printf("%lf \n", norm(tmp1, tmp2));
-        if(norm(tmp1, tmp3)/(pow(2, 6) - 1) > eps)
-        {
-            h /= 2.0;
-            goto hell;
-        }
-        else if(norm(tmp1, tmp3)/(pow(2, 6) - 1) < eps1)
-        {
-            h *= 2;
-            goto hell;
-        }
-        else 
-        {  
-            tmp = tmp3;
-            l += h;
-            n = max(fabs(tmp.y1 - checkSol(l)), n);
-            fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
-        }
-    }
-    printf("norm %.17g", n);
-    fclose(out);
+   double h, err; 
+   pair tmp, tmp1, tmp2, tmp3;
+   double fac, facmax, facmin;
+   FILE * out = fopen("data.dat", "w");
+   fac = 0.8;
+   facmax = 1.5;
+   facmin = 0;
+   h = 0.1;
+   tmp.y1 = y1;
+   tmp.y2 = y2;
+   while(l < r)
+   {
+       tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
+       tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, l + h, c, a, b);
+       tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, l, c, a, b);
+       printf("%17g %lf \n", h, l);
+       err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
+       if(err < tol)
+       {
+           fprintf(out, "%lf %lf %lf \n", l, tmp1.y1, tmp1.y2);
+           fprintf(out, "%lf %lf %lf \n", l + h, tmp2.y1, tmp2.y2);
+           tmp = tmp2;
+           l += 2*h;
+           h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
+           if(h < minh)
+           {
+               h = 100*minh;
+               tmp = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
+               l += h;
+               fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
+           }
+       }
+       else
+       {
+           h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
+       }
+       
+   }
 }
 int main()
 {
@@ -193,8 +198,8 @@ int main()
     for(i = 0; i < 6; i++)
         a[i] = (double *)malloc(sizeof(double)*(i + 1));
     fillArrays(c, a, b);
-    //solveFixed(n, l, r, y1_0, y2_0, c, a, b);
-    solveChange(l, r, y1_0, y2_0, 0.000001, 0.0000001, c, a, b);
+    solveFixed(n, l, r, y1_0, y2_0, c, a, b);
+    //solveChange(l, r, y1_0, y2_0, 0.000000001, c, a, b);
     free(c);
     free(b);
     for(i = 0; i < 6; i++)
