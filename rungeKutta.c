@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 const double omega = 2;
-double alpha = -0.2;
+double alpha = 0.2;
 const double EPS = 0.00001;
 const double minh = 0.00001;
 typedef struct
@@ -11,6 +11,41 @@ typedef struct
     double y1;
     double y2;
 }pair;
+typedef struct 
+{
+    double * data;
+    int i; 
+    int n;
+}vector;
+void init(vector * v, int n)
+{
+    v->data = (double *)malloc(n*sizeof(double));
+    v->i = 0;
+    v->n = n;
+}
+void reall(vector * v)
+{
+    double * tmp;
+    tmp = (double *)malloc(sizeof(double)*(2*v->n));
+    memcpy(tmp, v->data, (v->n)*sizeof(double));
+    v->n *= 2;
+    free(v->data);
+    v->data = tmp;
+}
+void push_back(vector * v, double val)
+{
+    if(v->i == v->n)
+        reall(v);
+    v->data[v->i] = val;
+    v->i++;
+}
+void free_vec(vector * v)
+{
+    if(v->data != NULL)
+        free(v->data);
+    v->i = 0;
+    v->n = 0;
+}
 double max(double a, double b)
 {
     return (a > b) ? a : b;
@@ -57,22 +92,15 @@ void fillArrays(double * c, double ** a, double * b)
     a[5][4] = 32.0/195.0;
     a[5][5] = 80.0/39.0;
 }
-double * reserve(double * data, int n)
-{
-    double * tmp = (double *)malloc(sizeof(double)*2*n);
-    memcpy(tmp, data, n*sizeof(double));
-    free(data);
-    return tmp;
-}
 double f1(double t, double y1, double y2)
 {
     return y2;
 }
 double f2(double t, double y1, double y2) 
 {
-    //return -y1;
+    return -y1;
     //return -y1*y1*y1 + alpha*cos(t);
-    return -(1 + alpha*y1*y1)*y1 + cos(t);
+    //return -(1 + alpha*y1*y1)*y1 + cos(t);
     //return -sin(t);
 }
 double checkSol(double t)
@@ -110,6 +138,31 @@ double norm(pair tmp1, pair tmp2)
     return max(fabs(tmp1.y1 - tmp2.y1), fabs(tmp1.y2 - tmp2.y2));
     //return sqrt(pow(tmp1.y1 - tmp2.y1,2) + pow(tmp2.y2 - tmp1.y2, 2));
 }
+pair findSolution(double t0, double y10, double y20, double t, double tol, double *c, double ** a, double * b)
+{
+    double h, err; 
+    pair tmp, tmp1, tmp2, tmp3;
+    double fac, facmax, facmin;
+    fac = 0.8;
+    facmax = 1.5;
+    facmin = 0;
+    h = 0.001;
+    tmp.y1 = y10;
+    tmp.y2 = y20;
+    while(t0 < t)
+    {
+        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, t0, c, a, b);
+        tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, t0 + h, c, a, b);
+        tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, t0, c, a, b);
+        err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
+        if(err < tol)
+        {
+            if(h > (t - t0))
+                return rungeKutta(h, tmp.y1, tmp.y2, t0, c, a, b);
+            else if(2*h > (t - t0))
+        }
+    }
+}
 void solveFixed(double n, double l, double r, double y1, double y2, double * c, double ** a, double * b)
 {
     double h;
@@ -127,18 +180,20 @@ void solveFixed(double n, double l, double r, double y1, double y2, double * c, 
     }
     fclose(out);
 }
-void solveChange(double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
+void solveChange(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
 {
    double h, err; 
    pair tmp, tmp1, tmp2, tmp3;
    double fac, facmax, facmin;
-   FILE * out = fopen("data.dat", "w");
    fac = 0.8;
    facmax = 1.5;
    facmin = 0;
-   h = 0.1;
+   h = 0.001;
    tmp.y1 = y1;
    tmp.y2 = y2;
+   push_back(t, l);
+   push_back(s1, y1);
+   push_back(s2, y2);
    while(l < r)
    {
        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
@@ -148,45 +203,61 @@ void solveChange(double l, double r, double y1, double y2, double tol, double * 
        err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
        if(err < tol)
        {
-           fprintf(out, "%lf %lf %lf \n", l, tmp1.y1, tmp1.y2);
-           fprintf(out, "%lf %lf %lf \n", l + h, tmp2.y1, tmp2.y2);
+           if(2*h > (r - l))
+           {
+               h = (r - l)/2;
+               tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
+               tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, l + h, c, a, b);
+               tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, l, c, a, b);
+           }
+           push_back(t, l + h);
+           push_back(s1, tmp1.y1);
+           push_back(s2, tmp1.y2);
+           push_back(t, l + 2*h);
+           push_back(s1, tmp2.y1);
+           push_back(s2, tmp2.y2);
            tmp = tmp2;
            l += 2*h;
            h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
-           if(h < minh)
-           {
-               h = 100*minh;
-               tmp = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
-               l += h;
-               fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
-           }
        }
        else
        {
            h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
-       }
-       
+       }       
    }
+}
+void write_data(vector * t, vector * s1, vector * s2)
+{
+    int i;
+    FILE * output = fopen("data.dat", "w");
+    if(!output)
+    {
+        printf("Cannot open file \n");
+        exit(1);
+    }
+    for(i = 0; i < t->i; i++)
+    {
+        fprintf(output, "%lf %lf %lf \n", t->data[i], s1->data[i], s2->data[i]);
+    }
+    fclose(output);
 }
 int main()
 {
-    pair tmp1, tmp2, tmp;
     double * b;
     double * c;
     double ** a;
     int n,i;
-    double eps;
-    double h;
     double l, r, y1_0, y2_0;
-    double t, y, yn;
-    double s;
+    vector t, s1, s2;
+    init(&s1, 10);
+    init(&t, 10);
+    init(&s2, 10);
     printf("Input n\n");
     scanf("%d", &n);
     printf("Input l and r\n");
     scanf("%lf %lf", &l, &r);
     printf("Input y_0\n");
     scanf("%lf %lf", &y1_0, &y2_0);
-    h = (r - l)/n;
     b = (double *)malloc(sizeof(double)*7);
     c = (double *)malloc(sizeof(double)*7);
     a = (double **)malloc(sizeof(double *)*6);
@@ -196,14 +267,25 @@ int main()
         return 1;
     }
     for(i = 0; i < 6; i++)
+    {
         a[i] = (double *)malloc(sizeof(double)*(i + 1));
+        if(!a[i])
+        {
+            printf("Cannot allocate memory \n");
+            return 1;
+        }
+    }
     fillArrays(c, a, b);
-    solveFixed(n, l, r, y1_0, y2_0, c, a, b);
-    //solveChange(l, r, y1_0, y2_0, 0.000000001, c, a, b);
+    //solveFixed(n, l, r, y1_0, y2_0, c, a, b);
+    solveChange(&t, &s1, &s2, l, r, y1_0, y2_0, 0.000000001, c, a, b);
+    write_data(&t, &s1, &s2);
     free(c);
     free(b);
     for(i = 0; i < 6; i++)
         free(a[i]);
     free(a);
+    free_vec(&t);
+    free_vec(&s1);
+    free_vec(&s2);
     return 0;
 }
