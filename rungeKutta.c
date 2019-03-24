@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 const double omega = 2;
-double alpha = 0.2;
+double alpha = -0.2;
 const double EPS = 0.00001;
 const double minh = 0.00001;
 typedef struct
@@ -98,9 +98,10 @@ double f1(double t, double y1, double y2)
 }
 double f2(double t, double y1, double y2) 
 {
-    return -y1;
+    //return -y1;
     //return -y1*y1*y1 + alpha*cos(t);
-    //return -(1 + alpha*y1*y1)*y1 + cos(t);
+    //return (1. + 3.*cos(2.*t))/2. - y2,
+    return -(1 + alpha*y1*y1)*y1 + cos(t);
     //return -sin(t);
 }
 double checkSol(double t)
@@ -160,8 +161,24 @@ pair findSolution(double t0, double y10, double y20, double t, double tol, doubl
             if(h > (t - t0))
                 return rungeKutta(h, tmp.y1, tmp.y2, t0, c, a, b);
             else if(2*h > (t - t0))
+            {}
         }
     }
+}
+double getH(double h, double err, double tol)
+{
+    double fac, facmax, facmin;
+    fac = 0.8;
+    facmax = 1.5;
+    facmin = 0;
+    h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));    
+    return h;
+}
+pair findVal(double t0, double y10, double y20, double t, double tol, double * c, double ** a, double * b)
+{
+    pair tmp, tmp1, tmp2, tmp3;
+    double h;
+    double err, fac, facmax, facmin;
 }
 void solveFixed(double n, double l, double r, double y1, double y2, double * c, double ** a, double * b)
 {
@@ -180,14 +197,44 @@ void solveFixed(double n, double l, double r, double y1, double y2, double * c, 
     }
     fclose(out);
 }
+void solveChangeL(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
+{
+    double h, err;
+    pair tmp, tmp1, tmp2, tmp3;
+    h = -0.001;
+    tmp.y1 = y1;
+    tmp.y2 = y2;
+    push_back(t, r);
+    push_back(s1, y1);
+    push_back(s2, y2);
+    while(l < r)
+    {
+        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, r, c, a, b);
+        tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, r + h, c, a, b);
+        tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, r, c, a, b);
+        err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
+        if(err < tol)
+        {
+            push_back(t, r + h);
+            push_back(t, r + 2*h);
+            push_back(s1, tmp1.y1);
+            push_back(s1, tmp2.y1);
+            push_back(s2, tmp1.y2);
+            push_back(s2, tmp2.y2);
+            tmp = tmp2;
+            r += 2*h;
+            h = getH(h, err, tol);
+        }
+        else
+        {
+            h = getH(h, err, tol);
+        }        
+    }
+}
 void solveChange(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
 {
    double h, err; 
    pair tmp, tmp1, tmp2, tmp3;
-   double fac, facmax, facmin;
-   fac = 0.8;
-   facmax = 1.5;
-   facmin = 0;
    h = 0.001;
    tmp.y1 = y1;
    tmp.y2 = y2;
@@ -218,15 +265,17 @@ void solveChange(vector * t, vector * s1, vector * s2, double l, double r, doubl
            push_back(s2, tmp2.y2);
            tmp = tmp2;
            l += 2*h;
-           h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
+           h = getH(h, err, tol);
+           //h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
        }
        else
        {
-           h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
+           h = getH(h, err, tol);
+           //h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));
        }       
    }
 }
-void write_data(vector * t, vector * s1, vector * s2)
+void write_data(vector * tr, vector * s1r, vector * s2r, vector * tl, vector * s1l, vector * s2l)
 {
     int i;
     FILE * output = fopen("data.dat", "w");
@@ -235,9 +284,13 @@ void write_data(vector * t, vector * s1, vector * s2)
         printf("Cannot open file \n");
         exit(1);
     }
-    for(i = 0; i < t->i; i++)
+    for(i = tl->i - 1; i >= 0; i--)
     {
-        fprintf(output, "%lf %lf %lf \n", t->data[i], s1->data[i], s2->data[i]);
+        fprintf(output, "%lf %lf %lf \n", tl->data[i], s1l->data[i], s2l->data[i]);
+    }
+    for(i = 0; i < tr->i; i++)
+    {
+        fprintf(output, "%lf %lf %lf \n", tr->data[i], s1r->data[i], s2r->data[i]);
     }
     fclose(output);
 }
@@ -248,16 +301,20 @@ int main()
     double ** a;
     int n,i;
     double l, r, y1_0, y2_0;
-    vector t, s1, s2;
-    init(&s1, 10);
-    init(&t, 10);
-    init(&s2, 10);
+    double t_0;
+    vector tr, s1r, s2r, tl, s1l, s2l;
+    init(&s1r, 10);
+    init(&tr, 10);
+    init(&s2r, 10);
+    init(&s1l, 10);
+    init(&s2l, 10);
+    init(&tl, 10);
     printf("Input n\n");
     scanf("%d", &n);
     printf("Input l and r\n");
     scanf("%lf %lf", &l, &r);
-    printf("Input y_0\n");
-    scanf("%lf %lf", &y1_0, &y2_0);
+    printf("Input t_0 and  y_0\n");
+    scanf("%lf %lf %lf", &t_0, &y1_0, &y2_0);
     b = (double *)malloc(sizeof(double)*7);
     c = (double *)malloc(sizeof(double)*7);
     a = (double **)malloc(sizeof(double *)*6);
@@ -276,16 +333,21 @@ int main()
         }
     }
     fillArrays(c, a, b);
+    solveChange(&tr, &s1r, &s2r, t_0, r, y1_0, y2_0, 0.000000001, c, a, b);
+    solveChangeL(&tl, &s1l, &s2l, l, t_0, y1_0, y2_0, 0.000000001, c, a, b);
     //solveFixed(n, l, r, y1_0, y2_0, c, a, b);
-    solveChange(&t, &s1, &s2, l, r, y1_0, y2_0, 0.000000001, c, a, b);
-    write_data(&t, &s1, &s2);
+    //solveChange(&t, &s1, &s2, l, r, y1_0, y2_0, 0.000000001, c, a, b);
+    write_data(&tr, &s1r, &s2r, &tl, &s1l, &s2l);
     free(c);
     free(b);
     for(i = 0; i < 6; i++)
         free(a[i]);
     free(a);
-    free_vec(&t);
-    free_vec(&s1);
-    free_vec(&s2);
+    free_vec(&tl);
+    free_vec(&s1l);
+    free_vec(&s2l);
+    free_vec(&tr);
+    free_vec(&s1r);
+    free_vec(&s2r);
     return 0;
 }
