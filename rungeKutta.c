@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <string.h>
+const double lol = 0;
 const double omega = 2;
 double alpha = -0.2;
 const double EPS = 0.00001;
