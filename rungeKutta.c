@@ -3,7 +3,7 @@
 #include <math.h>
 #include <string.h>
 const double omega = 2;
-double alpha = -0.2;
+double alpha = 0.2;
 const double EPS = 0.00001;
 const double minh = 0.00001;
 typedef struct
