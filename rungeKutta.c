@@ -99,10 +99,10 @@ double f1(double t, double y1, double y2)
 }
 double f2(double t, double y1, double y2) 
 {
-    //return -y1;
+    return -y1;
     //return -y1*y1*y1 + alpha*cos(t);
     //return (1. + 3.*cos(2.*t))/2. - y2,
-    return -(1 + alpha*y1*y1)*y1 + cos(t);
+    //return -(1 + alpha*y1*y1)*y1 + cos(t);
     //return -sin(t);
 }
 double checkSol(double t)
