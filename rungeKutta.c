@@ -4,9 +4,12 @@
 #include <string.h>
 const double lol = 0;
 const double omega = 2;
-double alpha = -0.2;
+double alpha = 0.2;
 const double EPS = 0.00001;
 const double minh = 0.00001;
+const double c[] = {0, 0.5, 2.0/3.0, 1.0/3.0, 5.0/6.0, 1.0/6.0, 1.0};
+const double b[] = {13.0/200.0, 0.0, 11.0/40.0, 11.0/40.0, 4.0/25.0, 4.0/25.0, 13.0/200.0};
+double ** a;
 typedef struct
 {
     double y1;
@@ -47,30 +50,16 @@ void free_vec(vector * v)
     v->i = 0;
     v->n = 0;
 }
-double max(double a, double b)
+double max(double x, double y)
 {
-    return (a > b) ? a : b;
+    return (x > y) ? x : y;
 }
-double min(double a, double b)
+double min(double x, double y)
 {
-    return (a > b) ? b : a;
+    return (x > y) ? y : x;
 }
-void fillArrays(double * c, double ** a, double * b)
+void fillArrays()
 {
-    c[0] = 0;
-    c[1] = 0.5;
-    c[2] = 2.0/3.0;
-    c[3] = 1.0/3.0;
-    c[4] = 5.0/6.0;
-    c[5] = 1.0/6.0;
-    c[6] = 1.0;
-    b[0] = 13.0/200.0;
-    b[1] = 0.0;
-    b[2] = 11.0/40.0;
-    b[3] = 11.0/40.0;
-    b[4] = 4.0/25.0;
-    b[5] = 4.0/25.0;
-    b[6] = 13.0/200.0;
     a[0][0] = 1.0/2.0;
     a[1][0] = 2.0/9.0;
     a[1][1] = 4.0/9.0;
@@ -109,64 +98,39 @@ double checkSol(double t)
 {
     return sin(t);
 }
-pair rungeKutta(double h, double y1, double y2, double t, double * c, double ** a, double * b)
-{
-    double k11, k21, k31, k41, k51, k61, k71;
-    double k12, k22, k32, k42, k52, k62, k72; 
-    double tmpt;
-    double tmpy1;
-    double tmpy2;
+pair rungeKutta(double h, double y1, double y2, double t)
+{ 
+    double tmpt, tmpy1, tmpy2;
     double k1[7];
     double k2[7];
     pair output;
-    double yn1, yn2;
     int i, j;
     k1[0] = f1(t, y1, y2);
     k2[0] = f2(t, y1, y2);
     for(i = 1; i < 7; i++)
     {
-        tmpt = 0.;
         tmpy1 = y1;
         tmpy2 = y2;
         tmpt = t + c[i + 1]*h;
         for(j = 0; j < i + 1; j++)
         {
-            printf("%d %d \n", i, j);
             tmpy1 += a[i - 1][j]*h*k1[i];
             tmpy2 += a[i - 1][j]*h*k2[i];
         }
         k1[i] = f1(tmpt, tmpy1, tmpy2);
         k2[i] = f2(tmpt, tmpy1, tmpy2);
     }
-    yn1 = y1;
-    yn2 = y2;
+    output.y1 = 0.;
+    output.y2 = 0.;
     for(i = 0;i < 7; i++)
     {
-        yn1 += h*b[i]*k1[i];
-        yn2 += h*b[i]*k2[i];
+        output.y1 += b[i]*k1[i];
+        output.y2 += b[i]*k2[i];
     }
-    output.y1 = yn1;
-    output.y2 = yn2;
-    /*
-    k11 = f1(t, y1, y2);
-    k12 = f2(t, y1, y2);
-    k21 = f1(t + c[1]*h, y1 + a[0][0]*h*k11, y2 + a[0][0]*h*k12);
-    k22 = f2(t + c[1]*h, y1 + a[0][0]*h*k11, y2 + a[0][0]*h*k12);
-    k31 = f1(t + c[2]*h, y1 + a[1][0]*h*k11 + a[1][1]*h*k21, y2 + a[1][0]*h*k12 + a[1][1]*h*k22);
-    k32 = f2(t + c[2]*h, y1 + a[1][0]*h*k11 + a[1][1]*h*k21, y2 + a[1][0]*h*k12 + a[1][1]*h*k22);
-    k41 = f1(t + c[3]*h, y1 + a[2][0]*h*k11 + a[2][1]*h*k21 + a[2][2]*h*k31, y2 + a[2][0]*h*k12 + a[2][1]*h*k22 + a[2][2]*h*k32);
-    k42 = f2(t + c[3]*h, y1 + a[2][0]*h*k11 + a[2][1]*h*k21 + a[2][2]*h*k31, y2 + a[2][0]*h*k12 + a[2][1]*h*k22 + a[2][2]*h*k32);
-    k51 = f1(t + c[4]*h, y1 + a[3][0]*h*k11 + a[3][1]*h*k21 + a[3][2]*h*k31 + a[3][3]*h*k41, y2 + a[3][0]*h*k12 + a[3][1]*h*k22 + a[3][2]*h*k32 + a[3][3]*h*k42);
-    k52 = f2(t + c[4]*h, y1 + a[3][0]*h*k11 + a[3][1]*h*k21 + a[3][2]*h*k31 + a[3][3]*h*k41, y2 + a[3][0]*h*k12 + a[3][1]*h*k22 + a[3][2]*h*k32 + a[3][3]*h*k42);
-    k61 = f1(t + c[5]*h, y1 + a[4][0]*h*k11 + a[4][1]*h*k21 + a[4][2]*h*k31 + a[4][3]*h*k41 + a[4][4]*h*k51,  y2 + a[4][0]*h*k12 + a[4][1]*h*k22 + a[4][2]*h*k32 + a[4][3]*h*k42 + a[4][4]*h*k52);
-    k62 = f2(t + c[5]*h, y1 + a[4][0]*h*k11 + a[4][1]*h*k21 + a[4][2]*h*k31 + a[4][3]*h*k41 + a[4][4]*h*k51,  y2 + a[4][0]*h*k12 + a[4][1]*h*k22 + a[4][2]*h*k32 + a[4][3]*h*k42 + a[4][4]*h*k52);
-    k71 = f1(t + c[6]*h, y1 + a[5][0]*h*k11 + a[5][1]*h*k21 + a[5][2]*h*k31 + a[5][3]*h*k41 + a[5][4]*h*k51 + a[5][5]*h*k61, y2 + a[5][0]*h*k12+ a[5][1]*h*k22 + a[5][2]*h*k32 + a[5][3]*h*k42 + a[5][4]*h*k52 + a[5][5]*h*k62);
-    k72 = f2(t + c[6]*h, y1 + a[5][0]*h*k11 + a[5][1]*h*k21 + a[5][2]*h*k31 + a[5][3]*h*k41 + a[5][4]*h*k51 + a[5][5]*h*k61, y2 + a[5][0]*h*k12+ a[5][1]*h*k22 + a[5][2]*h*k32 + a[5][3]*h*k42 + a[5][4]*h*k52 + a[5][5]*h*k62);
-    yn1 = y1 + h*(b[0]*k11 + b[1]*k21 + b[2]*k31 + b[3]*k41 + b[4]*k51 + b[5]*k61 + b[6]*k71);
-    yn2 = y2 + h*(b[0]*k12 + b[1]*k22 + b[2]*k32 + b[3]*k42 + b[4]*k52 + b[5]*k62 + b[6]*k72);
-    output.y1 = yn1;
-    output.y2 = yn2;
-    */
+    output.y1 *= h;
+    output.y2 *= h;
+    output.y1 += y1;
+    output.y2 += y2;
     return output;
 }   
 double norm(pair tmp1, pair tmp2)
@@ -174,7 +138,7 @@ double norm(pair tmp1, pair tmp2)
     return max(fabs(tmp1.y1 - tmp2.y1), fabs(tmp1.y2 - tmp2.y2));
     //return sqrt(pow(tmp1.y1 - tmp2.y1,2) + pow(tmp2.y2 - tmp1.y2, 2));
 }
-pair findSolution(double t0, double y10, double y20, double t, double tol, double *c, double ** a, double * b)
+pair findSolution(double t0, double y10, double y20, double t, double tol)
 {
     double h, err; 
     pair tmp, tmp1, tmp2, tmp3;
@@ -187,14 +151,14 @@ pair findSolution(double t0, double y10, double y20, double t, double tol, doubl
     tmp.y2 = y20;
     while(t0 < t)
     {
-        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, t0, c, a, b);
-        tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, t0 + h, c, a, b);
-        tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, t0, c, a, b);
+        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, t0);
+        tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, t0 + h);
+        tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, t0);
         err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
         if(err < tol)
         {
             if(h > (t - t0))
-                return rungeKutta(h, tmp.y1, tmp.y2, t0, c, a, b);
+                return rungeKutta(h, tmp.y1, tmp.y2, t0);
             else if(2*h > (t - t0))
             {}
         }
@@ -209,13 +173,13 @@ double getH(double h, double err, double tol)
     h = h*min(facmax, max(facmin, fac*pow(tol/err, 1./7.)));    
     return h;
 }
-pair findVal(double t0, double y10, double y20, double t, double tol, double * c, double ** a, double * b)
+pair findVal(double t0, double y10, double y20, double t, double tol)
 {
     pair tmp, tmp1, tmp2, tmp3;
     double h;
     double err, fac, facmax, facmin;
 }
-void solveFixed(double n, double l, double r, double y1, double y2, double * c, double ** a, double * b)
+void solveFixed(double n, double l, double r, double y1, double y2)
 {
     double h;
     pair tmp;
@@ -226,13 +190,13 @@ void solveFixed(double n, double l, double r, double y1, double y2, double * c, 
     fprintf(out, "%lf %lf %lf \n",l ,tmp.y1, tmp.y2);
     while(l <= r)
     {
-        tmp = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
+        tmp = rungeKutta(h, tmp.y1, tmp.y2, l);
         l += h;
         fprintf(out, "%lf %lf %lf \n", l, tmp.y1, tmp.y2);
     }
     fclose(out);
 }
-void solveChangeL(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
+void solveChangeL(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol)
 {
     double h, err;
     pair tmp, tmp1, tmp2, tmp3;
@@ -244,9 +208,9 @@ void solveChangeL(vector * t, vector * s1, vector * s2, double l, double r, doub
     push_back(s2, y2);
     while(l < r)
     {
-        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, r, c, a, b);
-        tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, r + h, c, a, b);
-        tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, r, c, a, b);
+        tmp1 = rungeKutta(h, tmp.y1, tmp.y2, r);
+        tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, r + h);
+        tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, r);
         err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
         if(err < tol)
         {
@@ -266,7 +230,7 @@ void solveChangeL(vector * t, vector * s1, vector * s2, double l, double r, doub
         }        
     }
 }
-void solveChange(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol, double * c, double ** a, double * b)
+void solveChange(vector * t, vector * s1, vector * s2, double l, double r, double y1, double y2, double tol)
 {
    double h, err; 
    pair tmp, tmp1, tmp2, tmp3;
@@ -278,9 +242,9 @@ void solveChange(vector * t, vector * s1, vector * s2, double l, double r, doubl
    push_back(s2, y2);
    while(l < r)
    {
-       tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
-       tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, l + h, c, a, b);
-       tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, l, c, a, b);
+       tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l);
+       tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, l + h);
+       tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, l);
        printf("%17g %lf \n", h, l);
        err = norm(tmp2, tmp3)/(pow(2, 7) - 1);
        if(err < tol)
@@ -288,9 +252,9 @@ void solveChange(vector * t, vector * s1, vector * s2, double l, double r, doubl
            if(2*h > (r - l))
            {
                h = (r - l)/2;
-               tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l, c, a, b);
-               tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, l + h, c, a, b);
-               tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, l, c, a, b);
+               tmp1 = rungeKutta(h, tmp.y1, tmp.y2, l);
+               tmp2 = rungeKutta(h, tmp1.y1, tmp1.y2, l + h);
+               tmp3 = rungeKutta(2*h, tmp.y1, tmp.y2, l);
            }
            push_back(t, l + h);
            push_back(s1, tmp1.y1);
@@ -331,9 +295,6 @@ void write_data(vector * tr, vector * s1r, vector * s2r, vector * tl, vector * s
 }
 int main()
 {
-    double * b;
-    double * c;
-    double ** a;
     int n,i;
     double l, r, y1_0, y2_0;
     double t_0;
@@ -350,10 +311,8 @@ int main()
     scanf("%lf %lf", &l, &r);
     printf("Input t_0 and  y_0\n");
     scanf("%lf %lf %lf", &t_0, &y1_0, &y2_0);
-    b = (double *)malloc(sizeof(double)*7);
-    c = (double *)malloc(sizeof(double)*7);
     a = (double **)malloc(sizeof(double *)*6);
-    if(!a || !b || !c)
+    if(!a)
     {
         printf("Cannot allocate memory \n");
         return 1;
@@ -367,14 +326,12 @@ int main()
             return 1;
         }
     }
-    fillArrays(c, a, b);
-    solveChange(&tr, &s1r, &s2r, t_0, r, y1_0, y2_0, 0.000000001, c, a, b);
-    solveChangeL(&tl, &s1l, &s2l, l, t_0, y1_0, y2_0, 0.000000001, c, a, b);
+    fillArrays();
+    solveChange(&tr, &s1r, &s2r, t_0, r, y1_0, y2_0, 0.000000001);
+    solveChangeL(&tl, &s1l, &s2l, l, t_0, y1_0, y2_0, 0.000000001);
     //solveFixed(n, l, r, y1_0, y2_0, c, a, b);
     //solveChange(&t, &s1, &s2, l, r, y1_0, y2_0, 0.000000001, c, a, b);
     write_data(&tr, &s1r, &s2r, &tl, &s1l, &s2l);
-    free(c);
-    free(b);
     for(i = 0; i < 6; i++)
         free(a[i]);
     free(a);
