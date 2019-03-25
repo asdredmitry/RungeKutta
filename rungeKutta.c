@@ -113,8 +113,41 @@ pair rungeKutta(double h, double y1, double y2, double t, double * c, double ** 
 {
     double k11, k21, k31, k41, k51, k61, k71;
     double k12, k22, k32, k42, k52, k62, k72; 
+    double tmpt;
+    double tmpy1;
+    double tmpy2;
+    double k1[7];
+    double k2[7];
     pair output;
     double yn1, yn2;
+    int i, j;
+    k1[0] = f1(t, y1, y2);
+    k2[0] = f2(t, y1, y2);
+    for(i = 1; i < 7; i++)
+    {
+        tmpt = 0.;
+        tmpy1 = y1;
+        tmpy2 = y2;
+        tmpt = t + c[i + 1]*h;
+        for(j = 0; j < i + 1; j++)
+        {
+            printf("%d %d \n", i, j);
+            tmpy1 += a[i - 1][j]*h*k1[i];
+            tmpy2 += a[i - 1][j]*h*k2[i];
+        }
+        k1[i] = f1(tmpt, tmpy1, tmpy2);
+        k2[i] = f2(tmpt, tmpy1, tmpy2);
+    }
+    yn1 = y1;
+    yn2 = y2;
+    for(i = 0;i < 7; i++)
+    {
+        yn1 += h*b[i]*k1[i];
+        yn2 += h*b[i]*k2[i];
+    }
+    output.y1 = yn1;
+    output.y2 = yn2;
+    /*
     k11 = f1(t, y1, y2);
     k12 = f2(t, y1, y2);
     k21 = f1(t + c[1]*h, y1 + a[0][0]*h*k11, y2 + a[0][0]*h*k12);
@@ -133,6 +166,7 @@ pair rungeKutta(double h, double y1, double y2, double t, double * c, double ** 
     yn2 = y2 + h*(b[0]*k12 + b[1]*k22 + b[2]*k32 + b[3]*k42 + b[4]*k52 + b[5]*k62 + b[6]*k72);
     output.y1 = yn1;
     output.y2 = yn2;
+    */
     return output;
 }   
 double norm(pair tmp1, pair tmp2)
