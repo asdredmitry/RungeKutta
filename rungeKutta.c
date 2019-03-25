@@ -111,11 +111,11 @@ pair rungeKutta(double h, double y1, double y2, double t)
     {
         tmpy1 = y1;
         tmpy2 = y2;
-        tmpt = t + c[i + 1]*h;
-        for(j = 0; j < i + 1; j++)
+        tmpt = t + c[i]*h;
+        for(j = 0; j < i; j++)
         {
-            tmpy1 += a[i - 1][j]*h*k1[i];
-            tmpy2 += a[i - 1][j]*h*k2[i];
+            tmpy1 += a[i - 1][j]*h*k1[j];
+            tmpy2 += a[i - 1][j]*h*k2[j];
         }
         k1[i] = f1(tmpt, tmpy1, tmpy2);
         k2[i] = f2(tmpt, tmpy1, tmpy2);
