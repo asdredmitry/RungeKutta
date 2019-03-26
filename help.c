@@ -76,3 +76,17 @@ void write_data_1(vector * t, vector * s1, vector * s2)
     }
     fclose(output);
 }
+double check_func(double t)
+{
+    return sin(t);
+}
+double norm_full(vector * t, vector * s1)
+{
+    double maxim = 0.;
+    int i;
+    for(i = 0; i < t->i; i++)
+    {
+        maxim = max(maxim, fabs(check_func(t->data[i]) - s1->data[i]));
+    }
+    return maxim;
+}

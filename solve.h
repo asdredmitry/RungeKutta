@@ -1,7 +1,6 @@
 #ifndef SOLVE_H
 #define SOLVE_H
 #include "help.h"
-
 void fillArrays();
 
 double f1(double t, double y1, double y2);

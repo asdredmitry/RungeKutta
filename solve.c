@@ -1,4 +1,5 @@
 #include "solve.h"
+const double alpha = 0.2;
 double f1(double t, double y1, double y2)
 {
     return y2;
@@ -6,6 +7,10 @@ double f1(double t, double y1, double y2)
 double f2(double t, double y1, double y2)
 {
     return -y1;
+    //return -y1*y1*y1 + alpha*cos(t);
+    //return (1. + 3.*cos(2.*t))/2. - y2,
+    //return -(1 + alpha*y1*y1)*y1 + cos(t);
+    //return -sin(t);
 }
 void fillArrays()
 {
@@ -124,9 +129,25 @@ void solve_change(double l, double r, double y1, double y2, double tol, vector *
         err = norm(tmp2, tmp3)/(pow(2., 7) - 1);
         if(err < tol)
         {
+            if(l + h > r)
+            {
+                tmp = runge_kutta(r - l, tmp.y1, tmp.y2, l);
+                push_back(t, r);
+                push_back(s1, tmp.y1);
+                push_back(s2, tmp.y2);
+                break;
+            }
             push_back(t, l + h);
             push_back(s1, tmp1.y1);
             push_back(s2, tmp1.y2);
+            if(l + 2*h > r)
+            {
+                tmp = runge_kutta(r - (l + h), tmp1.y1, tmp1.y2, l + h);
+                push_back(t, r);
+                push_back(s1, tmp.y1);
+                push_back(s2, tmp.y2);
+                break;
+            }
             push_back(t, l + 2*h);
             push_back(s1, tmp2.y1);
             push_back(s2, tmp2.y2);

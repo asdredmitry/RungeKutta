@@ -1,9 +1,8 @@
 #include "help.h"
 #include "solve.h"
 
-const double alpha = 0.00001;
 const double EPS = 0.000001;
-const double tol = 0.000000001;
+const double tol = 0.000001;
 int main()
 {
     int i;
@@ -32,7 +31,9 @@ int main()
         }
     }
     fillArrays();
-    solve_change(l, r, y01, y02, tol, &t, &s1, &s2);
+    solve_fixed(10000, l, r, y01, y02, &t, &s1, &s2);
+    //solve_change(l, r, y01, y02, tol, &t, &s1, &s2);
+    printf("norm full %17g", norm_full(&t, &s1));
     write_data_1(&t, &s1, &s2);
     free_vec(&t);
     free_vec(&s1);
