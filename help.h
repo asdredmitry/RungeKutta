@@ -28,6 +28,7 @@ void init(vector * v, int n);
 void reall(vector * v);
 void push_back(vector * v, double val);
 void free_vec(vector * v);
+int lower_bound(vector * t, double val);
 
 
 double max(double x, double y);

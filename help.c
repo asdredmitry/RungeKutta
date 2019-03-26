@@ -90,3 +90,28 @@ double norm_full(vector * t, vector * s1)
     }
     return maxim;
 }
+int lower_bound(vector * t, double val)
+{
+    int l, r, tmp;
+    if(val < t->data[0])
+    {
+        return -1;
+    }
+    else if(val > t->data[t->i - 1])
+    {
+        return t->i;
+    }
+    l = 0;
+    r = t->i - 1;
+    while(l < r)
+    {
+        tmp = ((l + r)/2 + (l + r)%2);
+        if(t->data[tmp] > val)
+            r = tmp - 1;
+        else if(t->data[tmp] < val)
+            l = tmp;     
+        else 
+            return tmp;
+    }
+    return l;    
+}

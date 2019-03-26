@@ -161,3 +161,22 @@ void solve_change(double l, double r, double y1, double y2, double tol, vector *
         }
     }
 }
+pair find_val(double t0, vector * t, vector * s1, vector * s2)
+{
+    int i, j;
+    pair output;
+    i = lower_bound(t, t0);
+    if(t->data[i] == t0)
+    {
+        output.y1 = s1->data[i];
+        output.y2 = s2->data[i];
+        return output;
+    }
+    if(t0 - t->data[i] < 0.0)
+    {
+        printf("Fuck");
+        exit(EXIT_FAILURE);
+    }
+    output = runge_kutta(t0 - t->data[i], s1->data[i], s2->data[i], t->data[i]);
+    return output;
+}

@@ -17,4 +17,5 @@ void solve_fixed(double n, double l, double r, double y1, double y2, vector * t,
 
 void solve_change(double l, double r, double y1, double y2, double tol, vector * t, vector * s1, vector * s2);
 
+pair find_val(double t0, vector * t, vector * s1, vector * s2);
 #endif
